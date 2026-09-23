@@ -1,16 +1,23 @@
 FROM python:3.14-slim
 
+RUN useradd -m app
+
 WORKDIR /app
 
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+COPY --from=ghcr.io/astral-sh/uv:0.12.7 /uv /uvx /bin/
 
-COPY pyproject.toml uv.lock ./
+RUN chown app:app /app
+
+USER app
+
+COPY --chown=app:app pyproject.toml uv.lock ./
 
 RUN uv sync --frozen --no-dev --no-install-project
 
-COPY src/ ./src/
-COPY README.md ./
+COPY --chown=app:app src/ ./src/
+COPY --chown=app:app README.md ./
 
+ENV PATH="/app/.venv/bin:$PATH"
 ENV PYTHONPATH=.
 
-CMD ["uv", "run", "uvicorn", "src.marketplace_analytics_service.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "src.marketplace_analytics_service.main:app", "--host", "0.0.0.0", "--port", "8000"]

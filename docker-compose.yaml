@@ -5,45 +5,54 @@ services:
     container_name: marketplace-analytics-fastapi
 
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
 
     env_file:
       - .env
 
     depends_on:
-      - db
-      - redis
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
 
-    restart: always
+    restart: unless-stopped
 
   celery:
     build: .
 
-    container_name: marketplace-analytics-celery
-
     env_file:
       - .env
 
     depends_on:
-      - redis
-      - db
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     
-    command: uv run celery -A src.marketplace_analytics_service.core.celery_app:celery_app worker --loglevel=info
+    command: celery -A src.marketplace_analytics_service.core.celery_app:celery_app worker --loglevel=info
+
+    restart: unless-stopped
   db:
     image: postgres:17-alpine
 
     container_name: marketplace-analytics-postgres
 
     ports:
-      - "5432:5432"
-
-    env_file:
-      - .env
+      - "127.0.0.1:5433:5432"
 
     environment:
       - POSTGRES_USER=${DB_USER}
       - POSTGRES_PASSWORD=${DB_PASSWORD}
       - POSTGRES_DB=${DB_NAME}
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+    restart: unless-stopped
     
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -54,13 +63,17 @@ services:
     container_name: marketplace-analytics-redis
 
     ports:
-      - "6379:6379"
+      - "127.0.0.1:6380:6379"
 
-    env_file:
-      - .env
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD}"]
 
-    environment:
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+    restart: unless-stopped
 
     volumes:
       - redis_data:/data
