@@ -7,7 +7,16 @@ authors = [
     { name = "klimboston", email = "kklimadv@gmail.com" }
 ]
 requires-python = ">=3.14"
-dependencies = []
+dependencies = [
+    "asyncpg>=0.31.0",
+    "celery>=5.6.3",
+    "fastapi[standard]>=0.141.1",
+    "pydantic>=2.13.5",
+    "pydantic-settings>=2.15.0",
+    "redis>=8.1.0",
+    "sqlmodel>=0.0.42",
+    "uvicorn>=0.53.0",
+]
 
 [project.scripts]
 marketplace-analytics-service = "marketplace_analytics_service:main"
@@ -15,3 +24,6 @@ marketplace-analytics-service = "marketplace_analytics_service:main"
 [build-system]
 requires = ["uv_build>=0.12.7,<0.13.0"]
 build-backend = "uv_build"
+
+[tool.fastapi]
+entrypoint = "src.marketplace_analytics_service.main:app"
